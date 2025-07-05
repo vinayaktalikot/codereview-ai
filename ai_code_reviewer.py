@@ -80,10 +80,8 @@ def post_review_to_github(repo, pr_number, review_comments):
             file_path = comment['file_path']
             position_in_diff = comment['line_number']
             comment_body = f"**AI Reviewer Suggestion**:\n\n{comment['comment']}"
-            commit = pr.get_commits().reversed[0]
             pr.create_review_comment(
                 body=comment_body,
-                commit_id=commit.sha,
                 path=file_path,
                 position=position_in_diff
             )

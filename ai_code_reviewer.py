@@ -1,13 +1,25 @@
 import os
 import json
 import openai
+import requests
 from github import Github
 
 
-def get_pr_diff(repo, pr_number):
-    """Fetches the diff of the pull request."""
+def get_pr_diff(repo, pr_number, github_token):
+    """
+    Fetches the diff of the pull request using its diff_url.
+    """
     pr = repo.get_pull(pr_number)
-    return pr.get_diff()
+    diff_url = pr.diff_url
+
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3.diff"
+    }
+
+    response = requests.get(diff_url, headers=headers)
+    response.raise_for_status()
+    return response.text
 
 
 def get_project_guidelines():
@@ -16,19 +28,20 @@ def get_project_guidelines():
         with open('CODE_REVIEW_GUIDELINES.md', 'r') as f:
             return f.read()
     except FileNotFoundError:
+        print("INFO: CODE_REVIEW_GUIDELINES.md not found. Proceeding without custom guidelines.")
         return "No custom guidelines provided."
 
 
 def get_ai_review(diff, guidelines):
-    """Sends the code diff and guidelines to the AI model for a structured review."""
+    """Sends the code diff and guidelines to the AI model for a structured review"""
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     system_prompt = """
     You are an expert code reviewer. Your task is to review a code diff based on project guidelines.
-    Your feedback MUST be in a JSON array of comment objects. 
-    Each object needs 'file_path', 'line_number', and 'comment'.
-    The 'line_number' must be the line number within the diff file itself, not the original file.
-    If you find no issues, return an empty JSON array: `[]`.
+    Your feedback MUST be in a JSON object containing a single key "reviews" which is an array of comment objects.
+    Each comment object needs 'file_path', 'line_number', and 'comment'.
+    The 'line_number' must be the line number's position within the diff file itself (i.e., its line index in the diff).
+    If you find no issues, return an empty array: `{"reviews": []}`.
     """
 
     user_prompt = f"""
@@ -65,40 +78,39 @@ def post_review_to_github(repo, pr_number, review_comments):
     for comment in review_comments:
         try:
             file_path = comment['file_path']
-            line_number = comment['line_number']
+            position_in_diff = comment['line_number']
             comment_body = f"**AI Reviewer Suggestion**:\n\n{comment['comment']}"
             commit = pr.get_commits().reversed[0]
-
             pr.create_review_comment(
                 body=comment_body,
                 commit_id=commit.sha,
                 path=file_path,
-                line=line_number
+                position=position_in_diff
             )
-            print(f"Posted comment to {file_path} at line {line_number}")
+            print(f"Posted comment to {file_path} at position {position_in_diff}")
         except Exception as e:
-            print(f"Could not post comment: {e}")
+            print(f"Could not post comment to {comment.get('file_path')}: {e}")
 
 
 def main():
     """Main function to orchestrate the code review process."""
     github_token = os.getenv("GITHUB_TOKEN")
     repo_name = os.getenv("GITHUB_REPOSITORY")
-    pr_number = int(os.getenv("GITHUB_REF").split('/')[2])
+    pr_number = int(os.getenv("PR_NUMBER"))
 
     g = Github(github_token)
     repo = g.get_repo(repo_name)
 
     print("Fetching PR diff...")
-    diff = get_pr_diff(repo, pr_number)
+    diff = get_pr_diff(repo, pr_number, github_token)
 
     print("Fetching guidelines...")
     guidelines = get_project_guidelines()
 
     print("Sending to AI for review...")
-    review_json = get_ai_review(diff, guidelines)
+    review_json_string = get_ai_review(diff, guidelines)
 
-    review_data = json.loads(review_json)
+    review_data = json.loads(review_json_string)
 
     comments = review_data.get("reviews", [])
     if comments:

@@ -17,7 +17,6 @@ def get_pr_diff(repo, pr_number, github_token):
 
 
 def get_project_guidelines():
-    """Reads the team's coding guidelines from a local file."""
     try:
         with open('CODE_REVIEW_GUIDELINES.md', 'r') as f:
             return f.read()
@@ -34,12 +33,10 @@ def get_ai_review(diff, guidelines):
             "reviews": [
                 {
                     "file_path": "app/main.py",
-                    "line_number": 26,
                     "comment": "Guideline Violated: Hardcoded Secrets. The API key is hardcoded directly in the source code. This is a major security risk and should be loaded from a secure environment variable or secrets manager."
                 },
                 {
                     "file_path": "app/main.py",
-                    "line_number": 32,
                     "comment": "Guideline Violated: SQL Injection. The database query is constructed using an f-string with raw user input. This makes it vulnerable to SQL Injection attacks. Please use parameterized queries to fix this."
                 }
             ]
@@ -49,8 +46,7 @@ def get_ai_review(diff, guidelines):
     system_prompt = """
     You are an expert code reviewer. Your task is to review a code diff based on project guidelines.
     Your feedback MUST be in a JSON object containing a single key "reviews" which is an array of comment objects.
-    Each comment object needs 'file_path', 'line_number' (as an integer), and 'comment'.
-    The 'line_number' must be the line number's position within the diff file itself (i.e., its line index in the diff).
+    Each comment object needs 'file_path' and 'comment'. Do not include line numbers.
     If you find no issues, return an empty array: `{"reviews": []}`.
     """
     user_prompt = f"""
@@ -76,37 +72,30 @@ def get_ai_review(diff, guidelines):
 
 def post_review_to_github(repo, pr_number, review_comments):
     """
-    Posts the AI's feedback as a single review with multiple comments.
+    Posts the AI's feedback as a single, consolidated review comment on the PR
     """
     pr = repo.get_pull(pr_number)
-    commit = pr.get_commits().reversed[0]
 
-    comments_for_review = []
+    comment_body = "##AI Code Review\n\n"
+    comment_body += "I've reviewed the changes and found the following issues based on our guidelines:\n\n"
+
     for comment in review_comments:
-        comments_for_review.append({
-            "path": comment['file_path'],
-            "position": comment['line_number'],
-            "body": f"**AI Reviewer Suggestion**:\n\n{comment['comment']}"
-        })
+        comment_body += f"--- \n"
+        comment_body += f"**File:** `{comment['file_path']}`\n\n"
+        comment_body += f"**Issue:** {comment['comment']}\n\n"
 
-    if not comments_for_review:
+    if not review_comments:
         print("No comments to post.")
         return
 
     try:
-        pr.create_review(
-            commit=commit,
-            body="AI Code Review Complete",
-            event="COMMENT",
-            comments=comments_for_review
-        )
-        print(f"Successfully posted a review with {len(comments_for_review)} comments.")
+        pr.create_issue_comment(comment_body)
+        print(f"Successfully posted a review summary with {len(review_comments)} issues.")
     except Exception as e:
-        print(f"Failed to create review: {e}")
+        print(f"Failed to create review comment: {e}")
 
 
 def main():
-    """Main function to orchestrate the code review process."""
     github_token = os.getenv("GITHUB_TOKEN")
     repo_name = os.getenv("GITHUB_REPOSITORY")
     pr_number = int(os.getenv("PR_NUMBER"))
@@ -114,16 +103,16 @@ def main():
     g = Github(github_token)
     repo = g.get_repo(repo_name)
 
-    print("Fetching PR diff...")
+    print("Fetching PR diff--->")
     diff = get_pr_diff(repo, pr_number, github_token)
 
-    print("Fetching guidelines...")
+    print("Fetching guidelines -->")
     guidelines = get_project_guidelines()
 
-    print("Sending to AI for review (or using mock data)...")
+    print("Sending to AI for review -->")
     review_json_string = get_ai_review(diff, guidelines)
 
-    print("\n--- AI Response ---")
+    print("\n AI Response --->")
     print(review_json_string)
     print("-------------------\n")
 

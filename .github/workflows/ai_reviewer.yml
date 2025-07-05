@@ -6,6 +6,9 @@ on:
 
 jobs:
   review:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -16,11 +19,16 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: List files in the repository
+        run: ls -la
+
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: pip install PyGithub==2.3.0 openai==1.35.7 requests==2.32.3 httpx==0.27.0
 
       - name: Run AI Review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEBUG_MODE: 'false'
         run: python ai_code_reviewer.py

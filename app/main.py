@@ -17,6 +17,26 @@ def get_user_data(user_id: int):
 
     return user_data
 
+def get_user_by_username(username: str):
+    """
+    A new, insecure function to find a user by their username.
+    """
+    api_key = "sk-this-is-a-hardcoded-secret-key" # I want this to be flagged
+    db_path = os.getenv("DATABASE_PATH", "users.db")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # DANGER --->
+    query = f"SELECT * FROM users WHERE username = '{username}'"
+    cursor.execute(query) # I want this to be flagged
+
+    user_data = cursor.fetchone()
+    print(f"User data fetched: {user_data}")
+    conn.close()
+
+    return user_data
+
+
 if __name__ == "__main__":
     user = get_user_data(1)
     if user:

@@ -7,7 +7,6 @@ from github import Github
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 def get_pr_diff(repo, pr_number, github_token):
-    """Fetches the diff of the pull request using its diff_url"""
     pr = repo.get_pull(pr_number)
     diff_url = pr.diff_url
     headers = {"Authorization": f"token {github_token}", "Accept": "application/vnd.github.v3.diff"}
@@ -70,9 +69,6 @@ def get_ai_review(diff, guidelines):
 
 
 def post_review_to_github(repo, pr_number, review_comments):
-    """
-    Posts the AI's feedback as a single, consolidated review comment on the PR
-    """
     pr = repo.get_pull(pr_number)
 
     comment_body = "## AI Code Review\n\n"

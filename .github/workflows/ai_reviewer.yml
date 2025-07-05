@@ -20,7 +20,7 @@ jobs:
         run: ls -la
 
       - name: Install Dependencies
-        run: pip install PyGithub==2.3.0 openai==1.35.7
+        run: pip install PyGithub==2.3.0 openai==1.35.7 requests==2.32.3 httpx==0.27.0
 
       - name: Run AI Review
         env:

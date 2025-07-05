@@ -3,7 +3,7 @@
 ## 1. Security
 - **No Hardcoded Secrets:** Never hardcode API keys, passwords, or other secrets directly in the code. Use environment variables or a secrets management system.
 - **SQL Injection:** All database queries must use parameterized statements or an ORM. Raw SQL with f-strings or string formatting is strictly forbidden.
-- **Log Sanitization:** Do not log sensitive user information (e.g., passwords, credit card numbers, PII) in plain text.
+- **Log Sanitisation:** Do not log sensitive user information (e.g., passwords, credit card numbers, PII) in plain text.
 
 ## 2. Python Best Practices
 - **Clear Variable Names:** Variable names should be descriptive (e.g., `user_profile` instead of `u_prof`). Avoid single-letter variables except in simple loops.

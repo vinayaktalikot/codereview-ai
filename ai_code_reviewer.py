@@ -21,12 +21,11 @@ def get_project_guidelines():
         with open('CODE_REVIEW_GUIDELINES.md', 'r') as f:
             return f.read()
     except FileNotFoundError:
-        print("INFO: CODE_REVIEW_GUIDELINES.md not found.")
+        print("INFO: CODE_REVIEW_GUIDELINES.md not found")
         return "No custom guidelines provided."
 
 
 def get_ai_review(diff, guidelines):
-    """Sends the code diff and guidelines to the AI model for a structured review."""
     if DEBUG_MODE:
         print("--- DEBUG MODE: USING MOCK AI RESPONSE ---")
         return json.dumps({
@@ -76,7 +75,7 @@ def post_review_to_github(repo, pr_number, review_comments):
     """
     pr = repo.get_pull(pr_number)
 
-    comment_body = "##AI Code Review\n\n"
+    comment_body = "## AI Code Review\n\n"
     comment_body += "I've reviewed the changes and found the following issues based on our guidelines:\n\n"
 
     for comment in review_comments:
@@ -90,7 +89,7 @@ def post_review_to_github(repo, pr_number, review_comments):
 
     try:
         pr.create_issue_comment(comment_body)
-        print(f"Successfully posted a review summary with {len(review_comments)} issues.")
+        print(f"Successfully posted a review summary with {len(review_comments)} issues")
     except Exception as e:
         print(f"Failed to create review comment: {e}")
 
@@ -119,7 +118,7 @@ def main():
     review_data = json.loads(review_json_string)
     comments = review_data.get("reviews", [])
     if comments:
-        print(f"Found {len(comments)} issues. Posting to GitHub...")
+        print(f"Found {len(comments)} issues. Posting to GitHub")
         post_review_to_github(repo, pr_number, comments)
     else:
         print("AI found no issues to comment on.")

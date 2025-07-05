@@ -20,7 +20,7 @@ jobs:
         run: ls -la
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r ${{ github.workspace }}/requirements.txt
 
       - name: Run AI Review
         env:
